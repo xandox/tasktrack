@@ -1,0 +1,147 @@
+#compdef tasktrack
+
+autoload -U is-at-least
+
+_tasktrack() {
+    typeset -A opt_args
+    typeset -a _arguments_options
+    local ret=1
+
+    if is-at-least 5.2; then
+        _arguments_options=(-s -S -C)
+    else
+        _arguments_options=(-s -C)
+    fi
+
+    local context curcontext="$curcontext" state line
+    _arguments "${_arguments_options[@]}" \
+'-h[Print help information]' \
+'--help[Print help information]' \
+":: :_tasktrack_commands" \
+"*::: :->tasktrack" \
+&& ret=0
+    case $state in
+    (tasktrack)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:tasktrack-command-$line[1]:"
+        case $line[1] in
+            (current)
+_arguments "${_arguments_options[@]}" \
+'-h[Print help information]' \
+'--help[Print help information]' \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" \
+'*-n+[]:INT: ' \
+'*--num-tasks=[]:INT: ' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+&& ret=0
+;;
+(new)
+_arguments "${_arguments_options[@]}" \
+'*-u+[]:URL: ' \
+'*--url=[]:URL: ' \
+'*-t+[]:TEXT: ' \
+'*--title=[]:TEXT: ' \
+'*-w+[]:WP: ' \
+'*--workpackage=[]:WP: ' \
+'*-o+[]:OBJECTIVE: ' \
+'*--objective=[]:OBJECTIVE: ' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+':task-id:' \
+&& ret=0
+;;
+(activate)
+_arguments "${_arguments_options[@]}" \
+'-h[Print help information]' \
+'--help[Print help information]' \
+':task-id:' \
+&& ret=0
+;;
+(edit)
+_arguments "${_arguments_options[@]}" \
+'*-u+[]:URL: ' \
+'*--url=[]:URL: ' \
+'*-t+[]:TEXT: ' \
+'*--title=[]:TEXT: ' \
+'*-w+[]:WP: ' \
+'*--workpackage=[]:WP: ' \
+'*-o+[]:OBJECTIVE: ' \
+'*--objective=[]:OBJECTIVE: ' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+':task-id:' \
+&& ret=0
+;;
+(report)
+_arguments "${_arguments_options[@]}" \
+'-h[Print help information]' \
+'--help[Print help information]' \
+':since:' \
+':till:' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" \
+'*::subcommand -- The subcommand whose help message to display:' \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+}
+
+(( $+functions[_tasktrack_commands] )) ||
+_tasktrack_commands() {
+    local commands; commands=(
+'current:' \
+'list:' \
+'new:' \
+'activate:' \
+'edit:' \
+'report:' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'tasktrack commands' commands "$@"
+}
+(( $+functions[_tasktrack__activate_commands] )) ||
+_tasktrack__activate_commands() {
+    local commands; commands=()
+    _describe -t commands 'tasktrack activate commands' commands "$@"
+}
+(( $+functions[_tasktrack__current_commands] )) ||
+_tasktrack__current_commands() {
+    local commands; commands=()
+    _describe -t commands 'tasktrack current commands' commands "$@"
+}
+(( $+functions[_tasktrack__edit_commands] )) ||
+_tasktrack__edit_commands() {
+    local commands; commands=()
+    _describe -t commands 'tasktrack edit commands' commands "$@"
+}
+(( $+functions[_tasktrack__help_commands] )) ||
+_tasktrack__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'tasktrack help commands' commands "$@"
+}
+(( $+functions[_tasktrack__list_commands] )) ||
+_tasktrack__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'tasktrack list commands' commands "$@"
+}
+(( $+functions[_tasktrack__new_commands] )) ||
+_tasktrack__new_commands() {
+    local commands; commands=()
+    _describe -t commands 'tasktrack new commands' commands "$@"
+}
+(( $+functions[_tasktrack__report_commands] )) ||
+_tasktrack__report_commands() {
+    local commands; commands=()
+    _describe -t commands 'tasktrack report commands' commands "$@"
+}
+
+_tasktrack "$@"
