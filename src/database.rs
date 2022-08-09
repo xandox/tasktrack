@@ -7,14 +7,14 @@ use std::path::PathBuf;
 
 use crate::error::Error;
 use crate::error::Result;
-use crate::time_ranges::{dt_to_str, now_str, DateTime, TimeRange};
+use crate::time_ranges::{from_timestamp, now_timestamp, to_timestamp, DateTime, TimeRange};
 
 pub(crate) struct Database {
     connection: Connection,
 }
 
-static START_VALUE: i64 = 1;
-static STOP_VALUE: i64 = 0;
+pub static START_VALUE: i64 = 1;
+pub static STOP_VALUE: i64 = 0;
 
 static CREATE_TASK_TABLE: &'static str = "
 CREATE TABLE IF NOT EXISTS Task (
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS Task (
 static CREATE_TASK_TIME_RANGES: &'static str = "
 CREATE TABLE IF NOT EXISTS TaskTimeRanges (
     task_id TEXT NOT NULL,
-    timestamp TEXT NOT NULL,
+    timestamp INTEGER NOT NULL,
     start_or_stop INTEGER NOT NULL,
     FOREIGN KEY(task_id) REFERENCES Task(task_id)
 );
@@ -183,7 +183,7 @@ impl Database {
         ":title": title,
         ":workpackage": wp,
         ":objective": o,
-        ":now": now_str()})
+        ":now": now_timestamp()})
             .map(|_| ())
             .map_err(|e| e.into())
     }
@@ -207,13 +207,13 @@ impl Database {
         let nrows = if drop {
             stmt.execute([
                 &rusqlite::types::Null as &dyn ToSql,
-                &StrToSql::new(now_str()) as &dyn ToSql,
+                &now_timestamp() as &dyn ToSql,
                 &StrToSql::new(task_id.to_string()) as &dyn ToSql,
             ])?
         } else {
             stmt.execute([
                 &StrToSql::new(value.unwrap().to_string()) as &dyn ToSql,
-                &StrToSql::new(now_str()) as &dyn ToSql,
+                &now_timestamp() as &dyn ToSql,
                 &StrToSql::new(task_id.to_string()) as &dyn ToSql,
             ])?
         };
@@ -255,7 +255,12 @@ impl Database {
         Ok(result.is_some())
     }
 
-    fn update_time_ranges(&mut self, task_id: &str, value: i64) -> Result<()> {
+    pub fn update_time_ranges(
+        &mut self,
+        task_id: &str,
+        value: i64,
+        dt: Option<DateTime>,
+    ) -> Result<()> {
         const SQL_T: &'static str = "
             UPDATE Task SET
                 last_update = :now
@@ -267,7 +272,7 @@ impl Database {
                 VALUES (:task_id, :now, :value);
         ";
 
-        let ns = now_str();
+        let ns = now_timestamp();
 
         let tx = self.connection.transaction()?;
 
@@ -275,7 +280,7 @@ impl Database {
 
         {
             let mut ranges_stmt = tx.prepare(SQL_R)?;
-            ranges_stmt.insert(named_params! {":task_id": task_id, ":value": value, ":now": ns})?;
+            ranges_stmt.insert(named_params! {":task_id": task_id, ":value": value, ":now": match dt { None => ns, Some(dt) => to_timestamp(&dt) }})?;
         }
 
         if task_updated != 1 {
@@ -293,10 +298,10 @@ impl Database {
             if c_task_id == task_id {
                 return Ok(ActivationStatus::AlreadyActive);
             } else {
-                self.update_time_ranges(&c_task_id, STOP_VALUE)?;
+                self.update_time_ranges(&c_task_id, STOP_VALUE, None)?;
             }
         }
-        self.update_time_ranges(task_id, START_VALUE)?;
+        self.update_time_ranges(task_id, START_VALUE, None)?;
         if let Some(c_task_id) = current_task {
             return Ok(ActivationStatus::Deactivated(c_task_id));
         } else {
@@ -333,9 +338,9 @@ impl Database {
 
         let sql = format!("{}{};", SQL_BASE, where_block);
         let mut stmt = self.connection.prepare(&sql)?;
+        let start_date = start_date.map(|dt| to_timestamp(&dt));
+        let end_date = end_date.map(|dt| to_timestamp(&dt));
         let mut params = Vec::new();
-        let start_date = start_date.map(|dt| StrToSql::new(dt_to_str(&dt)));
-        let end_date = end_date.map(|dt| StrToSql::new(dt_to_str(&dt)));
         let task_id = task_id.map(|s| StrToSql::new(s.to_owned()));
         if let Some(task_id) = task_id.as_ref() {
             params.push((":task_id", task_id as &dyn ToSql));
@@ -357,10 +362,8 @@ impl Database {
         let mut result = HashMap::new();
 
         for row in row_iter {
-            let (task_id, timestamp, sos): (String, String, i64) = row?;
-            let datetime = chrono::DateTime::parse_from_rfc3339(&timestamp)
-                .unwrap()
-                .with_timezone(&chrono::Utc);
+            let (task_id, timestamp, sos): (String, i64, i64) = row?;
+            let datetime = from_timestamp(timestamp);
 
             if !result.contains_key(&task_id) {
                 result.insert(task_id.clone(), Vec::new());

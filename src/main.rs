@@ -25,9 +25,34 @@ fn main() -> error::Result<()> {
         Command::Edit(args) => edit_task(&db, args)?,
         Command::Show(args) => show_task(&db, args)?,
         Command::Activate(args) => activate_task(db, args)?,
-        Command::Report(args) => (report(&db, args))?,
+        Command::Report(args) => report(&db, args)?,
+        Command::AddRange(args) => add_range(db, args)?,
     };
     std::process::exit(return_code);
+}
+
+fn add_range(mut db: Database, args: AddRangeArgs) -> CmdResult {
+    if db.get_task(&args.task_id)?.is_none() {
+        println!("*** No task with id {}. ***", args.task_id);
+        return Ok(1);
+    }
+    if let Some(since) = args.since {
+        db.update_time_ranges(
+            &args.task_id,
+            database::START_VALUE,
+            Some(since.start_datetime()),
+        )?;
+        println!("Add start point to task with id {}.", args.task_id);
+    }
+    if let Some(till) = args.till {
+        db.update_time_ranges(
+            &args.task_id,
+            database::STOP_VALUE,
+            Some(till.end_datetime()),
+        )?;
+        println!("Add end point to task with id {}.", args.task_id);
+    }
+    Ok(0)
 }
 
 struct TaskReport {

@@ -6,6 +6,7 @@ complete -c tasktrack -n "__fish_use_subcommand" -f -a "activate" -d 'Activate t
 complete -c tasktrack -n "__fish_use_subcommand" -f -a "edit" -d 'Edit task description'
 complete -c tasktrack -n "__fish_use_subcommand" -f -a "report" -d 'Generate report'
 complete -c tasktrack -n "__fish_use_subcommand" -f -a "show" -d 'Show task description'
+complete -c tasktrack -n "__fish_use_subcommand" -f -a "add-range" -d 'Manulay add task time range'
 complete -c tasktrack -n "__fish_use_subcommand" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c tasktrack -n "__fish_seen_subcommand_from current" -s h -l help -d 'Print help information'
 complete -c tasktrack -n "__fish_seen_subcommand_from list" -s n -l num-tasks -d 'If set first *num_tasks*' -r
@@ -27,3 +28,6 @@ complete -c tasktrack -n "__fish_seen_subcommand_from edit" -l drop-objective -d
 complete -c tasktrack -n "__fish_seen_subcommand_from edit" -s h -l help -d 'Print help information'
 complete -c tasktrack -n "__fish_seen_subcommand_from report" -s h -l help -d 'Print help information'
 complete -c tasktrack -n "__fish_seen_subcommand_from show" -s h -l help -d 'Print help information'
+complete -c tasktrack -n "__fish_seen_subcommand_from add-range" -s s -l since -d 'Date since generate report. Format %d-%m-%Y' -r
+complete -c tasktrack -n "__fish_seen_subcommand_from add-range" -s t -l till -d 'Date till generate report. Format %d-%m-%Y' -r
+complete -c tasktrack -n "__fish_seen_subcommand_from add-range" -s h -l help -d 'Print help information'

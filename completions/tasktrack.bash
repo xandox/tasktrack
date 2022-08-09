@@ -15,6 +15,9 @@ _tasktrack() {
             activate)
                 cmd+="__activate"
                 ;;
+            add-range)
+                cmd+="__add__range"
+                ;;
             current)
                 cmd+="__current"
                 ;;
@@ -43,7 +46,7 @@ _tasktrack() {
 
     case "${cmd}" in
         tasktrack)
-            opts="-h --help current list new activate edit report show help"
+            opts="-h --help current list new activate edit report show add-range help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -63,6 +66,36 @@ _tasktrack() {
                 return 0
             fi
             case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        tasktrack__add__range)
+            opts="-s -t -h --since --till --help <TASK_ID>"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --since)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -s)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --till)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -t)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;

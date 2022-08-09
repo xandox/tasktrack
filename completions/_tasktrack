@@ -85,12 +85,23 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 '-h[Print help information]' \
 '--help[Print help information]' \
-':since -- Date since generate report:' \
-':till -- Date till generate report:' \
+':since -- Date since generate report. Format %d-%m-%Y:' \
+':till -- Date till generate report. Format %d-%m-%Y:' \
 && ret=0
 ;;
 (show)
 _arguments "${_arguments_options[@]}" \
+'-h[Print help information]' \
+'--help[Print help information]' \
+':task-id -- Task id:' \
+&& ret=0
+;;
+(add-range)
+_arguments "${_arguments_options[@]}" \
+'*-s+[Date since generate report. Format %d-%m-%Y]:SINCE_DATE: ' \
+'*--since=[Date since generate report. Format %d-%m-%Y]:SINCE_DATE: ' \
+'*-t+[Date till generate report. Format %d-%m-%Y]:TILL_DATE: ' \
+'*--till=[Date till generate report. Format %d-%m-%Y]:TILL_DATE: ' \
 '-h[Print help information]' \
 '--help[Print help information]' \
 ':task-id -- Task id:' \
@@ -116,6 +127,7 @@ _tasktrack_commands() {
 'edit:Edit task description' \
 'report:Generate report' \
 'show:Show task description' \
+'add-range:Manulay add task time range' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'tasktrack commands' commands "$@"
@@ -124,6 +136,11 @@ _tasktrack_commands() {
 _tasktrack__activate_commands() {
     local commands; commands=()
     _describe -t commands 'tasktrack activate commands' commands "$@"
+}
+(( $+functions[_tasktrack__add-range_commands] )) ||
+_tasktrack__add-range_commands() {
+    local commands; commands=()
+    _describe -t commands 'tasktrack add-range commands' commands "$@"
 }
 (( $+functions[_tasktrack__current_commands] )) ||
 _tasktrack__current_commands() {

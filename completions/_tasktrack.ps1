@@ -30,6 +30,7 @@ Register-ArgumentCompleter -Native -CommandName 'tasktrack' -ScriptBlock {
             [CompletionResult]::new('edit', 'edit', [CompletionResultType]::ParameterValue, 'Edit task description')
             [CompletionResult]::new('report', 'report', [CompletionResultType]::ParameterValue, 'Generate report')
             [CompletionResult]::new('show', 'show', [CompletionResultType]::ParameterValue, 'Show task description')
+            [CompletionResult]::new('add-range', 'add-range', [CompletionResultType]::ParameterValue, 'Manulay add task time range')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
         }
@@ -86,6 +87,15 @@ Register-ArgumentCompleter -Native -CommandName 'tasktrack' -ScriptBlock {
             break
         }
         'tasktrack;show' {
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help information')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help information')
+            break
+        }
+        'tasktrack;add-range' {
+            [CompletionResult]::new('-s', 's', [CompletionResultType]::ParameterName, 'Date since generate report. Format %d-%m-%Y')
+            [CompletionResult]::new('--since', 'since', [CompletionResultType]::ParameterName, 'Date since generate report. Format %d-%m-%Y')
+            [CompletionResult]::new('-t', 't', [CompletionResultType]::ParameterName, 'Date till generate report. Format %d-%m-%Y')
+            [CompletionResult]::new('--till', 'till', [CompletionResultType]::ParameterName, 'Date till generate report. Format %d-%m-%Y')
             [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help information')
             [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help information')
             break

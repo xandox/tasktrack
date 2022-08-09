@@ -63,6 +63,8 @@ pub enum Command {
     Report(ReportArgs),
     #[doc = "Show task description"]
     Show(ShowArgs),
+    #[doc = "Manulay add task time range"]
+    AddRange(AddRangeArgs),
 }
 
 #[derive(clap::Parser)]
@@ -87,12 +89,25 @@ pub struct ShowArgs {
 }
 
 #[derive(clap::Parser)]
+pub struct AddRangeArgs {
+    #[clap(value_parser)]
+    #[doc = "Task id"]
+    pub task_id: String,
+    #[clap(short, long, value_parser, value_name = "SINCE_DATE")]
+    #[doc = "Date since generate report. Format %d-%m-%Y"]
+    pub since: Option<CliDate>,
+    #[clap(short, long, value_parser, value_name = "TILL_DATE")]
+    #[doc = "Date till generate report. Format %d-%m-%Y"]
+    pub till: Option<CliDate>,
+}
+
+#[derive(clap::Parser)]
 pub struct ReportArgs {
     #[clap(value_parser, value_name = "SINCE_DATE")]
-    #[doc = "Date since generate report"]
+    #[doc = "Date since generate report. Format %d-%m-%Y"]
     pub since: CliDate,
     #[clap(value_parser, value_name = "TILL_DATE")]
-    #[doc = "Date till generate report"]
+    #[doc = "Date till generate report. Format %d-%m-%Y"]
     pub till: CliDate,
 }
 

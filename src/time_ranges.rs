@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use bdays::HolidayCalendar;
-use chrono::{Datelike, NaiveDate};
+use chrono::{Datelike, NaiveDate, TimeZone};
 use num_traits::FromPrimitive;
 
 pub type DateTime = chrono::DateTime<chrono::Utc>;
@@ -27,28 +27,36 @@ fn count_hours(since: chrono::NaiveTime, till: chrono::NaiveTime) -> f64 {
     let m = dur.num_minutes() as f64 / 60.0;
     let dur = dur - chrono::Duration::minutes(dur.num_minutes());
     let s = dur.num_seconds() as f64 / (60.0 * 60.0);
-    return fixed_h as f64 + m + s;
+    let result = fixed_h as f64 + m + s;
+    return result;
 }
 
 pub fn count_work_houres(since: DateTime, till: DateTime) -> f64 {
     let calendar = bdays::calendars::WeekendsOnly;
 
-    if since.date() == till.date() {
+    let result = if since.date() == till.date() {
         if !calendar.is_bday(since.date()) {
             0.0
         } else {
             count_hours(since.time(), till.time())
         }
     } else {
-        let since_time = since.time();
-        let till_time = till.time();
-        let since_day = since.date() + chrono::Duration::days(1);
-        let till_day = till.date();
-        let ends = count_hours(since_time, day_end()) + count_hours(day_start(), till_time);
-        let days = calendar.bdays(since_day, till_day) as f64;
-        let days = if days >= 0.0 { days } else { 0.0 };
-        days * 8.0 + ends
-    }
+        let days = calendar.bdays(since, till) as f64;
+        let hours = days * 8.0;
+        let left = if calendar.is_bday(since) {
+            count_hours(day_start(), since.time())
+        } else {
+            0.0
+        };
+        let right = if calendar.is_bday(till) {
+            count_hours(day_start(), till.time())
+        } else {
+            0.0
+        };
+        hours - left + right
+    };
+
+    result
 }
 
 fn end_of_month(d: DateTime) -> DateTime {
@@ -99,10 +107,10 @@ impl TimeRange {
                 stop = true
             }
 
-            result.insert(
-                chrono::Month::from_u32(s.month()).unwrap(),
-                count_work_houres(s, e),
-            );
+            let wh = count_work_houres(s, e);
+
+            result.insert(chrono::Month::from_u32(s.month()).unwrap(), wh);
+
             if stop {
                 break;
             } else {
@@ -162,13 +170,19 @@ pub fn now() -> DateTime {
     chrono::Utc::now()
 }
 
-pub fn now_str() -> String {
-    let now_value = now();
-    dt_to_str(&now_value)
+pub fn now_timestamp() -> i64 {
+    to_timestamp(&now())
 }
 
-pub fn dt_to_str(dt: &DateTime) -> String {
-    dt.to_rfc3339_opts(chrono::SecondsFormat::Nanos, true)
+pub fn to_timestamp(dt: &DateTime) -> i64 {
+    dt.timestamp_nanos()
+}
+
+pub fn from_timestamp(ts: i64) -> DateTime {
+    const M: i64 = 1_000_000_000;
+    let secs = ts / M;
+    let nano = ts - secs * M;
+    chrono::Utc.from_utc_datetime(&chrono::NaiveDateTime::from_timestamp(secs, nano as u32))
 }
 
 #[cfg(test)]
@@ -188,14 +202,12 @@ mod tests {
             Utc,
         );
         if !calendar.is_bday(now) {
-            println!("today holyday");
             assert_eq!(
                 count_work_houres(now, now + chrono::Duration::hours(1)),
                 0.0
             );
             now = now + chrono::Duration::days(2);
         }
-        println!("{} {}", now, now + chrono::Duration::hours(1));
         assert_eq!(
             count_work_houres(now, now + chrono::Duration::hours(1)),
             1.0
@@ -204,7 +216,6 @@ mod tests {
         if !calendar.is_bday(tomorrow) {
             tomorrow = tomorrow + chrono::Duration::days(2);
         }
-        println!("{} {}", now, tomorrow);
         assert_eq!(count_work_houres(now, tomorrow), 8.0);
         assert_eq!(
             count_work_houres(now, tomorrow + chrono::Duration::hours(2)),

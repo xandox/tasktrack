@@ -27,6 +27,7 @@ set edit:completion:arg-completer[tasktrack] = {|@words|
             cand edit 'Edit task description'
             cand report 'Generate report'
             cand show 'Show task description'
+            cand add-range 'Manulay add task time range'
             cand help 'Print this message or the help of the given subcommand(s)'
         }
         &'tasktrack;current'= {
@@ -76,6 +77,14 @@ set edit:completion:arg-completer[tasktrack] = {|@words|
             cand --help 'Print help information'
         }
         &'tasktrack;show'= {
+            cand -h 'Print help information'
+            cand --help 'Print help information'
+        }
+        &'tasktrack;add-range'= {
+            cand -s 'Date since generate report. Format %d-%m-%Y'
+            cand --since 'Date since generate report. Format %d-%m-%Y'
+            cand -t 'Date till generate report. Format %d-%m-%Y'
+            cand --till 'Date till generate report. Format %d-%m-%Y'
             cand -h 'Print help information'
             cand --help 'Print help information'
         }
