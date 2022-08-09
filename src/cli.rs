@@ -88,10 +88,10 @@ pub struct ShowArgs {
 
 #[derive(clap::Parser)]
 pub struct ReportArgs {
-    #[clap(value_parser, value_name = "DATE")]
+    #[clap(value_parser, value_name = "SINCE_DATE")]
     #[doc = "Date since generate report"]
     pub since: CliDate,
-    #[clap(value_parser, value_name = "DATE")]
+    #[clap(value_parser, value_name = "TILL_DATE")]
     #[doc = "Date till generate report"]
     pub till: CliDate,
 }

@@ -72,7 +72,6 @@ fn report(db: &Database, args: ReportArgs) -> CmdResult {
     use prettytable::{cell, Cell, Row, Table};
 
     let month = time_ranges::month_range(since, till);
-    println!("{:?}", month);
 
     let none = "None".to_owned();
     let mut table = Table::new();

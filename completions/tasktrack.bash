@@ -213,7 +213,7 @@ _tasktrack() {
             return 0
             ;;
         tasktrack__report)
-            opts="-h --help <DATE> <DATE>"
+            opts="-h --help <SINCE_DATE> <TILL_DATE>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
