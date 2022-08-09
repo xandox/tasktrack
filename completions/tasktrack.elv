@@ -20,12 +20,13 @@ set edit:completion:arg-completer[tasktrack] = {|@words|
         &'tasktrack'= {
             cand -h 'Print help information'
             cand --help 'Print help information'
-            cand current 'current'
-            cand list 'list'
-            cand new 'new'
-            cand activate 'activate'
-            cand edit 'edit'
-            cand report 'report'
+            cand current 'Show current active task'
+            cand list 'List tasks'
+            cand new 'Create new task'
+            cand activate 'Activate task'
+            cand edit 'Edit task description'
+            cand report 'Generate report'
+            cand show 'Show task description'
             cand help 'Print this message or the help of the given subcommand(s)'
         }
         &'tasktrack;current'= {
@@ -33,20 +34,20 @@ set edit:completion:arg-completer[tasktrack] = {|@words|
             cand --help 'Print help information'
         }
         &'tasktrack;list'= {
-            cand -n 'n'
-            cand --num-tasks 'num-tasks'
+            cand -n 'If set first *num_tasks*'
+            cand --num-tasks 'If set first *num_tasks*'
             cand -h 'Print help information'
             cand --help 'Print help information'
         }
         &'tasktrack;new'= {
-            cand -u 'u'
-            cand --url 'url'
-            cand -t 't'
-            cand --title 'title'
-            cand -w 'w'
-            cand --workpackage 'workpackage'
-            cand -o 'o'
-            cand --objective 'objective'
+            cand -u 'Jira issue url'
+            cand --url 'Jira issue url'
+            cand -t 'Some short text description'
+            cand --title 'Some short text description'
+            cand -w 'Workpackage'
+            cand --workpackage 'Workpackage'
+            cand -o 'Objective'
+            cand --objective 'Objective'
             cand -h 'Print help information'
             cand --help 'Print help information'
         }
@@ -55,18 +56,26 @@ set edit:completion:arg-completer[tasktrack] = {|@words|
             cand --help 'Print help information'
         }
         &'tasktrack;edit'= {
-            cand -u 'u'
-            cand --url 'url'
-            cand -t 't'
-            cand --title 'title'
-            cand -w 'w'
-            cand --workpackage 'workpackage'
-            cand -o 'o'
-            cand --objective 'objective'
+            cand -u 'Set url to new value'
+            cand --url 'Set url to new value'
+            cand -t 'Set title to new value'
+            cand --title 'Set title to new value'
+            cand -w 'Set workpackage to new value'
+            cand --workpackage 'Set workpackage to new value'
+            cand -o 'Set objective to new value'
+            cand --objective 'Set objective to new value'
+            cand --drop-url 'Drop url value'
+            cand --drop-title 'Drop title value'
+            cand --drop-workpackage 'Drop workpackage value'
+            cand --drop-objective 'Drop objective value'
             cand -h 'Print help information'
             cand --help 'Print help information'
         }
         &'tasktrack;report'= {
+            cand -h 'Print help information'
+            cand --help 'Print help information'
+        }
+        &'tasktrack;show'= {
             cand -h 'Print help information'
             cand --help 'Print help information'
         }

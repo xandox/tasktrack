@@ -33,6 +33,9 @@ _tasktrack() {
             report)
                 cmd+="__report"
                 ;;
+            show)
+                cmd+="__show"
+                ;;
             *)
                 ;;
         esac
@@ -40,7 +43,7 @@ _tasktrack() {
 
     case "${cmd}" in
         tasktrack)
-            opts="-h --help current list new activate edit report help"
+            opts="-h --help current list new activate edit report show help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -82,7 +85,7 @@ _tasktrack() {
             return 0
             ;;
         tasktrack__edit)
-            opts="-u -t -w -o -h --url --title --workpackage --objective --help <TASK_ID>"
+            opts="-u -t -w -o -h --url --drop-url --title --drop-title --workpackage --drop-workpackage --objective --drop-objective --help <TASK_ID>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -211,6 +214,20 @@ _tasktrack() {
             ;;
         tasktrack__report)
             opts="-h --help <DATE> <DATE>"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        tasktrack__show)
+            opts="-h --help <TASK_ID>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
