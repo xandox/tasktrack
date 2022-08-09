@@ -1,12 +1,13 @@
 use rusqlite::named_params;
 use rusqlite::Connection;
 use rusqlite::OptionalExtension;
-use std::os::unix::fs::chroot;
+use rusqlite::ToSql;
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use crate::error::Error;
 use crate::error::Result;
-use crate::time_ranges::{now_str, TimeRange};
+use crate::time_ranges::{dt_to_str, now_str, DateTime, TimeRange};
 
 pub(crate) struct Database {
     connection: Connection,
@@ -50,6 +51,22 @@ pub struct Task {
     pub title: Option<String>,
     pub workpackage: Option<String>,
     pub objective: Option<String>,
+}
+
+struct StrToSql {
+    value: String,
+}
+
+impl StrToSql {
+    fn new(v: String) -> Self {
+        StrToSql { value: v }
+    }
+}
+
+impl rusqlite::ToSql for StrToSql {
+    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+        self.value.to_sql()
+    }
 }
 
 impl Database {
@@ -128,7 +145,7 @@ impl Database {
         Ok(result)
     }
 
-    pub fn get_task(&self, task_id: &str) -> Result<Task> {
+    pub fn get_task(&self, task_id: &str) -> Result<Option<Task>> {
         const SQL: &'static str = "
             SELECT task_id, url, title, workpackage, objective FROM Task WHERE task_id = :task_id;
         ";
@@ -142,6 +159,7 @@ impl Database {
                 objective: r.get(4)?,
             })
         })
+        .optional()
         .map_err(|e| e.into())
     }
 
@@ -170,6 +188,39 @@ impl Database {
             .map_err(|e| e.into())
     }
 
+    fn update_task_field(
+        &self,
+        task_id: &str,
+        field: &str,
+        value: Option<&str>,
+        drop: bool,
+    ) -> Result<(bool, bool)> {
+        if value.is_none() && !drop {
+            return Ok((false, false));
+        }
+
+        let query = format!(
+            "UPDATE Task SET {} = ?, last_update = ? WHERE task_id = ?",
+            field
+        );
+        let mut stmt = self.connection.prepare(&query)?;
+        let nrows = if drop {
+            stmt.execute([
+                &rusqlite::types::Null as &dyn ToSql,
+                &StrToSql::new(now_str()) as &dyn ToSql,
+                &StrToSql::new(task_id.to_string()) as &dyn ToSql,
+            ])?
+        } else {
+            stmt.execute([
+                &StrToSql::new(value.unwrap().to_string()) as &dyn ToSql,
+                &StrToSql::new(now_str()) as &dyn ToSql,
+                &StrToSql::new(task_id.to_string()) as &dyn ToSql,
+            ])?
+        };
+
+        Ok((nrows == 1, true))
+    }
+
     pub fn update_task(
         &self,
         task_id: &str,
@@ -177,26 +228,20 @@ impl Database {
         title: Option<&str>,
         wp: Option<&str>,
         o: Option<&str>,
-    ) -> Result<bool> {
-        const SQL: &'static str = "
-            UPDATE Task SET 
-                url = :url,
-                title = :title,
-                workpackage = :workpackage,
-                objective = :objective,
-                last_update = :now 
-            WHERE task_id = :task_id;
-        ";
-
-        let mut stmt = self.connection.prepare(SQL)?;
-        let nrows = stmt.execute(named_params! {
-        ":task_id": task_id,
-        ":url": url,
-        ":title": title,
-        ":workpackage": wp,
-        ":objective": o,
-        ":now": now_str()})?;
-        Ok(nrows == 1)
+        drop_url: bool,
+        drop_title: bool,
+        drop_wp: bool,
+        drop_o: bool,
+    ) -> Result<(bool, bool)> {
+        let (found_url, was_url) = self.update_task_field(task_id, "url", url, drop_url)?;
+        let (found_title, was_title) =
+            self.update_task_field(task_id, "title", title, drop_title)?;
+        let (found_wp, was_wp) = self.update_task_field(task_id, "workpackage", wp, drop_wp)?;
+        let (found_o, was_o) = self.update_task_field(task_id, "objective", o, drop_o)?;
+        Ok((
+            found_url || found_title || found_wp || found_o,
+            was_url || was_title || was_wp | was_o,
+        ))
     }
 
     pub fn is_task_exist(&self, task_id: &str) -> Result<bool> {
@@ -259,33 +304,86 @@ impl Database {
         }
     }
 
-    pub fn task_time_ranges(&self, task_id: &str) -> Result<Vec<TimeRange>> {
-        const SQL: &'static str = "
-            SELECT timestamp, start_or_stop FROM TaskTimeRanges WHERE task_id = :task_id;
+    pub fn select_time_ranges(
+        &self,
+        task_id: Option<&str>,
+        start_date: Option<DateTime>,
+        end_date: Option<DateTime>,
+    ) -> Result<HashMap<String, Vec<TimeRange>>> {
+        const SQL_BASE: &'static str = "
+            SELECT task_id, timestamp, start_or_stop FROM TaskTimeRanges
         ";
-        let mut stmt = self.connection.prepare(SQL)?;
-        let row_iter = stmt.query_map(named_params! {":task_id": task_id}, |r| {
-            Ok((r.get(0)?, r.get(1)?))
+        let where_block = if task_id.is_some() || start_date.is_some() || end_date.is_some() {
+            let mut blocks = Vec::with_capacity(3);
+            if task_id.is_some() {
+                blocks.push("task_id = :task_id".to_owned());
+            };
+
+            if start_date.is_some() {
+                blocks.push("timestamp >= :start".to_owned());
+            };
+
+            if end_date.is_some() {
+                blocks.push("timestamp <= :end".to_owned());
+            };
+            format!(" WHERE {}", blocks.join(" AND "))
+        } else {
+            "".to_owned()
+        };
+
+        let sql = format!("{}{};", SQL_BASE, where_block);
+        let mut stmt = self.connection.prepare(&sql)?;
+        let mut params = Vec::new();
+        let start_date = start_date.map(|dt| StrToSql::new(dt_to_str(&dt)));
+        let end_date = end_date.map(|dt| StrToSql::new(dt_to_str(&dt)));
+        let task_id = task_id.map(|s| StrToSql::new(s.to_owned()));
+        if let Some(task_id) = task_id.as_ref() {
+            params.push((":task_id", task_id as &dyn ToSql));
+        }
+        if let Some(start_date) = start_date.as_ref() {
+            params.push((":start", start_date as &dyn ToSql));
+        }
+
+        if let Some(end_date) = end_date.as_ref() {
+            params.push((":end", end_date as &dyn ToSql));
+        }
+        let row_iter = stmt.query_map(params.as_slice(), |r| {
+            let task_id = r.get(0)?;
+            let timestamp = r.get(1)?;
+            let start_or_stop = r.get(2)?;
+            Ok((task_id, timestamp, start_or_stop))
         })?;
 
-        let mut ranges = Vec::new();
+        let mut result = HashMap::new();
 
         for row in row_iter {
-            let (dt, sos): (String, i64) = row?;
-            let datetime = chrono::DateTime::parse_from_rfc3339(&dt)
+            let (task_id, timestamp, sos): (String, String, i64) = row?;
+            let datetime = chrono::DateTime::parse_from_rfc3339(&timestamp)
                 .unwrap()
                 .with_timezone(&chrono::Utc);
 
+            if !result.contains_key(&task_id) {
+                result.insert(task_id.clone(), Vec::new());
+            }
+
+            let records = result.get_mut(&task_id).unwrap();
+
             if sos == START_VALUE {
-                ranges.push(TimeRange {
+                records.push(TimeRange {
                     start: Some(datetime),
                     end: None,
-                })
+                });
             } else {
-                ranges.last_mut().unwrap().end = Some(datetime);
+                match records.last_mut() {
+                    Some(last) => last.end = Some(datetime),
+                    None => records.push(TimeRange {
+                        start: None,
+                        end: Some(datetime),
+                    }),
+                }
             }
         }
 
-        Ok(ranges)
+        Ok(result)
     }
 }

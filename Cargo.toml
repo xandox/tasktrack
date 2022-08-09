@@ -13,6 +13,8 @@ clap = {version = "3.2", features = ["derive"]}
 chrono = "0.4"
 bdays = "0.1"
 chronoutil = "0.2"
+num-traits = "0.2"
+prettytable-rs = "0.8"
 
 [build-dependencies]
 clap_complete = "3.2"

@@ -1,7 +1,19 @@
 use chrono::{Date, NaiveDate, Utc};
 
+use crate::time_ranges;
+
 #[derive(Debug, Clone, Copy)]
 pub struct CliDate(pub Date<Utc>);
+
+impl CliDate {
+    pub fn start_datetime(&self) -> time_ranges::DateTime {
+        self.0.and_hms(0, 0, 0)
+    }
+
+    pub fn end_datetime(&self) -> time_ranges::DateTime {
+        self.0.and_hms(23, 59, 59)
+    }
+}
 
 impl clap::builder::ValueParserFactory for CliDate {
     type Parser = CliDateValueParser;
@@ -43,7 +55,7 @@ pub enum Command {
     List(ListArgs),
     New(NewArgs),
     Activate(ActivateArgs),
-    Edit(NewArgs),
+    Edit(EditArgs),
     Report(ReportArgs),
     Show(ShowArgs),
 }
@@ -90,4 +102,34 @@ pub struct NewArgs {
 
     #[clap(short, long, value_parser, value_name = "OBJECTIVE")]
     pub objective: Option<String>,
+}
+
+#[derive(clap::Parser, Debug)]
+pub struct EditArgs {
+    #[clap(value_parser)]
+    pub task_id: String,
+
+    #[clap(short, long, value_parser, value_name = "URL")]
+    pub url: Option<String>,
+
+    #[clap(long, value_parser)]
+    pub drop_url: bool,
+
+    #[clap(short, long, value_parser, value_name = "TEXT")]
+    pub title: Option<String>,
+
+    #[clap(long, value_parser)]
+    pub drop_title: bool,
+
+    #[clap(short, long, value_parser, value_name = "WP")]
+    pub workpackage: Option<String>,
+
+    #[clap(long, value_parser)]
+    pub drop_workpackage: bool,
+
+    #[clap(short, long, value_parser, value_name = "OBJECTIVE")]
+    pub objective: Option<String>,
+
+    #[clap(long, value_parser)]
+    pub drop_objective: bool,
 }
