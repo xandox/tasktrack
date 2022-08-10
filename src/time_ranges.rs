@@ -6,6 +6,51 @@ use num_traits::FromPrimitive;
 
 pub type DateTime = chrono::DateTime<chrono::Utc>;
 
+struct LuxembourgHolidayCalender;
+
+impl<T: chrono::Datelike + Copy + PartialOrd> bdays::HolidayCalendar<T>
+    for LuxembourgHolidayCalender
+{
+    fn is_holiday(&self, date: T) -> bool {
+        let (yy, mm, dd) = (date.year(), date.month(), date.day());
+
+        let res = match (mm, dd) {
+            (1, 1) => true,   // New Year
+            (5, 1) => true,   // May Day
+            (5, 9) => true,   // Europe Day
+            (6, 23) => true,  // Grand Duke's Birthday
+            (8, 15) => true,  // Assumption
+            (11, 1) => true,  // All Saints
+            (12, 25) => true, // Christmas Day
+            (12, 26) => true, // Boxing Day
+            _ => false,
+        };
+
+        if res {
+            return res;
+        }
+
+        if mm == 4 || mm == 5 || mm == 6 {
+            let easter = bdays::easter::easter_naive_date(yy).unwrap();
+            let easter_monday = easter.succ();
+            if easter_monday.month() == mm && easter_monday.day() == dd {
+                return true;
+            }
+            let ascension_day = easter + chrono::Duration::days(39);
+            if ascension_day.month() == mm && ascension_day.day() == dd {
+                return true;
+            }
+
+            let whit_onday = easter + chrono::Duration::days(50);
+            if whit_onday.month() == mm && whit_onday.day() == dd {
+                return true;
+            }
+        }
+
+        false
+    }
+}
+
 #[derive(Debug)]
 pub struct TimeRange {
     pub start: Option<DateTime>,
@@ -32,7 +77,7 @@ fn count_hours(since: chrono::NaiveTime, till: chrono::NaiveTime) -> f64 {
 }
 
 pub fn count_work_houres(since: DateTime, till: DateTime) -> f64 {
-    let calendar = bdays::calendars::WeekendsOnly;
+    let calendar = LuxembourgHolidayCalender;
 
     let result = if since.date() == till.date() {
         if !calendar.is_bday(since.date()) {
