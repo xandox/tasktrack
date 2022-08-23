@@ -270,14 +270,38 @@ fn show_task(db: &Database, args: ShowArgs) -> CmdResult {
 }
 
 fn list_tasks(db: &Database, args: ListArgs) -> CmdResult {
+    use prettytable::{format::FormatBuilder, Cell, Row, Table};
+    let current_task = db.get_current_task_id()?;
     let tasks = db.list_tasks(args.num_tasks)?;
     if tasks.is_empty() {
         println!("*** No task created yet ***");
         return Ok(1);
     } else {
-        for task_id in tasks {
-            println!("{}", task_id);
+        let format = FormatBuilder::new()
+            .column_separator(' ')
+            .borders(' ')
+            .padding(1, 1)
+            .build();
+        let mut table = Table::new();
+        table.set_format(format);
+
+        for task in tasks {
+            let mut row = Vec::new();
+            if Some(&task.task_id) == current_task.as_ref() {
+                row.push(Cell::new("*"));
+            } else {
+                row.push(Cell::new(""));
+            }
+            row.push(Cell::new(&task.task_id));
+            if let Some(title) = task.title {
+                row.push(Cell::new(&title));
+            } else {
+                row.push(Cell::new(""));
+            }
+            table.add_row(Row::new(row));
         }
+
+        table.printstd();
         return Ok(0);
     }
 }

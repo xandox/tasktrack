@@ -116,12 +116,12 @@ impl Database {
         Ok(None)
     }
 
-    pub fn list_tasks(&self, top_n: Option<usize>) -> Result<Vec<String>> {
+    pub fn list_tasks(&self, top_n: Option<usize>) -> Result<Vec<Task>> {
         const SQL_NO_LIMIT: &'static str = "
-            SELECT task_id FROM Task ORDER BY last_update DESC;
+            SELECT task_id, title FROM Task ORDER BY last_update DESC;
         ";
         const SQL_LIMIT: &'static str = "
-            SELECT task_id FROM Task ORDER BY last_update DESC LIMIT :top_n;
+            SELECT task_id, title FROM Task ORDER BY last_update DESC LIMIT :top_n;
         ";
 
         let mut stmt = self.connection.prepare(if top_n.is_some() {
@@ -130,7 +130,7 @@ impl Database {
             SQL_NO_LIMIT
         })?;
 
-        let row_map = |r: &rusqlite::Row| r.get(0);
+        let row_map = |r: &rusqlite::Row| Ok((r.get(0)?, r.get(1)?));
 
         let res_iter = if let Some(top_n) = top_n {
             stmt.query_map(named_params! {":top_n": top_n}, row_map)?
@@ -139,8 +139,16 @@ impl Database {
         };
 
         let mut result = Vec::new();
-        for task_id in res_iter {
-            result.push(task_id?);
+        for row in res_iter {
+            let (task_id, title) = row?;
+            let task = Task {
+                task_id: task_id,
+                title: title,
+                url: None,
+                workpackage: None,
+                objective: None,
+            };
+            result.push(task);
         }
         Ok(result)
     }
