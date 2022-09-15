@@ -155,6 +155,8 @@ fn report(db: &Database, args: ReportArgs) -> CmdResult {
         });
     }
 
+    reports.sort_by(|a, b| a.task_id.cmp(&b.task_id));
+
     use prettytable::{cell, format::FormatBuilder, Cell, Row, Table};
 
     let format = FormatBuilder::new()
