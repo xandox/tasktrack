@@ -68,7 +68,7 @@ fn list_vacations(db: Database, args: VacationListArgs) -> CmdResult {
         let format = FormatBuilder::new()
             .column_separator(' ')
             .borders(' ')
-            .padding(1, 1)
+            .padding(0, 0)
             .build();
 
         let mut table = Table::new();
@@ -155,12 +155,19 @@ fn report(db: &Database, args: ReportArgs) -> CmdResult {
         });
     }
 
-    use prettytable::{cell, Cell, Row, Table};
+    use prettytable::{cell, format::FormatBuilder, Cell, Row, Table};
+
+    let format = FormatBuilder::new()
+        .column_separator(' ')
+        .borders(' ')
+        .padding(0, 0)
+        .build();
 
     let month = time_ranges::month_range(since, till);
 
     let none = "None".to_owned();
     let mut table = Table::new();
+    table.set_format(format);
     let mut header: Vec<String> = vec![
         "Title",
         "URL",
@@ -341,7 +348,7 @@ fn list_tasks(db: &Database, args: ListArgs) -> CmdResult {
         let format = FormatBuilder::new()
             .column_separator(' ')
             .borders(' ')
-            .padding(1, 1)
+            .padding(0, 0)
             .build();
         let mut table = Table::new();
         table.set_format(format);
