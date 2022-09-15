@@ -27,8 +27,64 @@ fn main() -> error::Result<()> {
         Command::Activate(args) => activate_task(db, args)?,
         Command::Report(args) => report(&db, args)?,
         Command::AddRange(args) => add_range(db, args)?,
+        Command::VacationAdd(args) => add_vacation(db, args)?,
+        Command::VacationRemove(args) => remove_vacation(db, args)?,
+        Command::VacationList(args) => list_vacations(db, args)?,
     };
     std::process::exit(return_code);
+}
+
+fn add_vacation(db: Database, args: VacationAddArgs) -> CmdResult {
+    let since = args.since.start_datetime();
+    let till = args.till.end_datetime();
+    db.add_vacation(since, till)?;
+    Ok(0)
+}
+
+fn remove_vacation(db: Database, args: VacationRemoveArgs) -> CmdResult {
+    db.delete_vacation(args.id)?;
+    Ok(0)
+}
+
+fn list_vacations(db: Database, args: VacationListArgs) -> CmdResult {
+    use prettytable::{format::FormatBuilder, Cell, Row, Table};
+    let since = args
+        .since
+        .map(|d| d.start_datetime())
+        .unwrap_or(time_ranges::from_timestamp(0));
+    let till = args
+        .till
+        .map(|d| d.end_datetime())
+        .unwrap_or(time_ranges::now());
+    let vacations = db.list_vacations(since, till)?;
+    if vacations.is_empty() {
+        if args.since.is_some() || args.till.is_some() {
+            println!("*** No vacations found in specified period");
+        } else {
+            println!("*** No vacations found");
+        }
+        return Ok(1);
+    } else {
+        let format = FormatBuilder::new()
+            .column_separator(' ')
+            .borders(' ')
+            .padding(1, 1)
+            .build();
+
+        let mut table = Table::new();
+        table.set_format(format);
+
+        for vacation in vacations {
+            let mut row = Vec::new();
+            row.push(Cell::new(&vacation.0.to_string()));
+            row.push(Cell::new(&vacation.1.date().format("%d.%m.%Y").to_string()));
+            row.push(Cell::new(&vacation.2.date().format("%d.%m.%Y").to_string()));
+            table.add_row(Row::new(row));
+        }
+
+        table.printstd();
+    }
+    Ok(0)
 }
 
 fn add_range(mut db: Database, args: AddRangeArgs) -> CmdResult {
@@ -67,11 +123,16 @@ fn report(db: &Database, args: ReportArgs) -> CmdResult {
     let till = args.till.end_datetime();
     let ranges = db.select_time_ranges(None, Some(since), Some(till))?;
     let mut reports = Vec::new();
+    let calendar = get_calendar(db)?;
     for (task_id, task_ranges) in ranges.iter() {
         let task_id = task_id.to_owned();
-        let total_hours =
-            time_ranges::working_houres_from_ranges(task_ranges, Some(since), Some(till));
-        let month_hours = time_ranges::month_hours(task_ranges, Some(since), Some(till));
+        let total_hours = time_ranges::working_houres_from_ranges(
+            task_ranges,
+            Some(since),
+            Some(till),
+            &calendar,
+        );
+        let month_hours = time_ranges::month_hours(task_ranges, Some(since), Some(till), &calendar);
         let months_vec: Vec<u32> = month_hours
             .iter()
             .map(|(k, _)| *k)
@@ -306,13 +367,24 @@ fn list_tasks(db: &Database, args: ListArgs) -> CmdResult {
     }
 }
 
+fn get_calendar(
+    db: &Database,
+) -> error::Result<impl bdays::HolidayCalendar<time_ranges::DateTime>> {
+    let vacations = db.get_vacations()?;
+    Ok(time_ranges::CalendarCombination::holydays_and_vacations(
+        vacations,
+    ))
+}
+
 fn current_task(db: &Database) -> CmdResult {
     if let Some(task_id) = db.get_current_task_id()? {
         let time_ranges_map = db.select_time_ranges(Some(&task_id), None, None)?;
         let time_ranges = time_ranges_map.get(&task_id);
         let working_houers = match time_ranges {
             None => 0.0,
-            Some(ranges) => time_ranges::working_houres_from_ranges(ranges, None, None),
+            Some(ranges) => {
+                time_ranges::working_houres_from_ranges(ranges, None, None, &get_calendar(db)?)
+            }
         };
         println!(
             "Current task: {}. You are working on it for {:.4} hours",

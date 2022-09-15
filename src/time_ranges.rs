@@ -7,11 +7,41 @@ use num_traits::FromPrimitive;
 pub type DateTime = chrono::DateTime<chrono::Utc>;
 
 struct LuxembourgHolidayCalender;
+struct VacationsCalendar {
+    vacations: Vec<(DateTime, DateTime)>,
+}
 
-impl<T: chrono::Datelike + Copy + PartialOrd> bdays::HolidayCalendar<T>
-    for LuxembourgHolidayCalender
-{
-    fn is_holiday(&self, date: T) -> bool {
+pub struct CalendarCombination {
+    calendars: Vec<Box<dyn HolidayCalendar<DateTime>>>,
+}
+
+impl CalendarCombination {
+    pub fn holydays_and_vacations(vacations: Vec<(DateTime, DateTime)>) -> Self {
+        Self {
+            calendars: vec![
+                Box::new(LuxembourgHolidayCalender),
+                Box::new(VacationsCalendar { vacations }),
+            ],
+        }
+    }
+}
+
+impl HolidayCalendar<DateTime> for CalendarCombination {
+    fn is_holiday(&self, date: DateTime) -> bool {
+        self.calendars.iter().any(|c| c.is_holiday(date))
+    }
+}
+
+impl HolidayCalendar<DateTime> for VacationsCalendar {
+    fn is_holiday(&self, date: DateTime) -> bool {
+        self.vacations
+            .iter()
+            .any(|(start, end)| date >= *start && date <= *end)
+    }
+}
+
+impl HolidayCalendar<DateTime> for LuxembourgHolidayCalender {
+    fn is_holiday(&self, date: DateTime) -> bool {
         let (yy, mm, dd) = (date.year(), date.month(), date.day());
 
         let res = match (mm, dd) {
@@ -76,11 +106,13 @@ fn count_hours(since: chrono::NaiveTime, till: chrono::NaiveTime) -> f64 {
     return result;
 }
 
-pub fn count_work_houres(since: DateTime, till: DateTime) -> f64 {
-    let calendar = LuxembourgHolidayCalender;
-
+pub fn count_work_houres(
+    since: DateTime,
+    till: DateTime,
+    calendar: &impl HolidayCalendar<DateTime>,
+) -> f64 {
     let result = if since.date() == till.date() {
-        if !calendar.is_bday(since.date()) {
+        if !calendar.is_bday(since) {
             0.0
         } else {
             count_hours(since.time(), till.time())
@@ -126,16 +158,22 @@ pub fn month_range(since: DateTime, till: DateTime) -> Vec<chrono::Month> {
 }
 
 impl TimeRange {
-    fn work_hours(&self, global_start: DateTime, global_end: DateTime) -> f64 {
+    fn work_hours(
+        &self,
+        global_start: DateTime,
+        global_end: DateTime,
+        calendar: &impl HolidayCalendar<DateTime>,
+    ) -> f64 {
         let since = self.start.unwrap_or(global_start).max(global_start);
         let till = self.end.unwrap_or(global_end).min(global_end);
-        count_work_houres(since, till)
+        count_work_houres(since, till, calendar)
     }
 
     fn month_hours(
         &self,
         global_start: DateTime,
         global_end: DateTime,
+        calendar: &impl HolidayCalendar<DateTime>,
     ) -> HashMap<chrono::Month, f64> {
         let since = self.start.unwrap_or(global_start).max(global_start);
         let till = self.end.unwrap_or(global_end).min(global_end);
@@ -152,7 +190,7 @@ impl TimeRange {
                 stop = true
             }
 
-            let wh = count_work_houres(s, e);
+            let wh = count_work_houres(s, e, calendar);
 
             result.insert(chrono::Month::from_u32(s.month()).unwrap(), wh);
 
@@ -171,6 +209,7 @@ pub fn working_houres_from_ranges(
     ranges: &[TimeRange],
     global_start: Option<DateTime>,
     global_end: Option<DateTime>,
+    calendar: &impl HolidayCalendar<DateTime>,
 ) -> f64 {
     let global_start = global_start.unwrap_or(chrono::DateTime::from_utc(
         chrono::NaiveDate::from_ymd(2022, 1, 1).and_hms(0, 0, 0),
@@ -179,7 +218,7 @@ pub fn working_houres_from_ranges(
     let global_end = global_end.unwrap_or(now()).min(now());
     ranges
         .iter()
-        .map(|r| r.work_hours(global_start, global_end))
+        .map(|r| r.work_hours(global_start, global_end, calendar))
         .sum()
 }
 
@@ -187,6 +226,7 @@ pub fn month_hours(
     ranges: &[TimeRange],
     global_start: Option<DateTime>,
     global_end: Option<DateTime>,
+    calendar: &impl HolidayCalendar<DateTime>,
 ) -> HashMap<chrono::Month, f64> {
     let global_start = global_start.unwrap_or(chrono::DateTime::from_utc(
         chrono::NaiveDate::from_ymd(2022, 1, 1).and_hms(0, 0, 0),
@@ -197,7 +237,7 @@ pub fn month_hours(
     let mut result = HashMap::new();
 
     for r in ranges {
-        let m_h = r.month_hours(global_start, global_end);
+        let m_h = r.month_hours(global_start, global_end, calendar);
         for (k, v) in m_h.iter() {
             if result.contains_key(k) {
                 let old_v = result.get_mut(k).unwrap();
@@ -248,35 +288,37 @@ mod tests {
         );
         if !calendar.is_bday(now) {
             assert_eq!(
-                count_work_houres(now, now + chrono::Duration::hours(1)),
+                count_work_houres(now, now + chrono::Duration::hours(1), &calendar),
                 0.0
             );
             now = now + chrono::Duration::days(2);
         }
         assert_eq!(
-            count_work_houres(now, now + chrono::Duration::hours(1)),
+            count_work_houres(now, now + chrono::Duration::hours(1), &calendar),
             1.0
         );
         let mut tomorrow = now + chrono::Duration::days(1);
         if !calendar.is_bday(tomorrow) {
             tomorrow = tomorrow + chrono::Duration::days(2);
         }
-        assert_eq!(count_work_houres(now, tomorrow), 8.0);
+        assert_eq!(count_work_houres(now, tomorrow, &calendar), 8.0);
         assert_eq!(
-            count_work_houres(now, tomorrow + chrono::Duration::hours(2)),
+            count_work_houres(now, tomorrow + chrono::Duration::hours(2), &calendar),
             10.0
         );
         assert_eq!(
             count_work_houres(
                 now,
-                tomorrow + chrono::Duration::days(1) + chrono::Duration::hours(2)
+                tomorrow + chrono::Duration::days(1) + chrono::Duration::hours(2),
+                &calendar
             ),
             18.0
         );
         assert_eq!(
             count_work_houres(
                 now,
-                tomorrow + chrono::Duration::days(2) + chrono::Duration::hours(2)
+                tomorrow + chrono::Duration::days(2) + chrono::Duration::hours(2),
+                &calendar
             ),
             26.0
         );

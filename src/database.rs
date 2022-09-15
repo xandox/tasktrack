@@ -39,6 +39,14 @@ CREATE INDEX IF NOT EXISTS RangesTimestamp ON TaskTimeRanges (
 );
 ";
 
+static CREATE_VACATIONS: &'static str = "
+CREATE TABLE IF NOT EXISTS Vacations (
+    vacation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    start_timestemp INTEGER NOT NULL,
+    end_timestemp INTEGER NOT NULL
+);
+";
+
 pub enum ActivationStatus {
     AlreadyActive,
     Activated,
@@ -79,6 +87,7 @@ impl Database {
         connection.execute("PRAGMA foreign_keys = ON;", ())?;
         connection.execute(CREATE_TASK_TABLE, ())?;
         connection.execute(CREATE_TASK_TIME_RANGES, ())?;
+        connection.execute(CREATE_VACATIONS, ())?;
 
         Ok(Self {
             connection: connection,
@@ -114,6 +123,77 @@ impl Database {
         }
 
         Ok(None)
+    }
+
+    pub fn add_vacation(&self, start: DateTime, end: DateTime) -> Result<()> {
+        const SQL: &'static str = "
+            INSERT INTO Vacations (start_timestemp, end_timestemp) VALUES (:start, :end);
+        ";
+        let mut stmp = self.connection.prepare(SQL)?;
+        stmp.execute(named_params! {
+            ":start": to_timestamp(&start),
+            ":end": to_timestamp(&end),
+        })?;
+
+        Ok(())
+    }
+
+    pub fn delete_vacation(&self, vacation_id: i64) -> Result<()> {
+        const SQL: &'static str = "
+            DELETE FROM Vacations WHERE vacation_id = :vacation_id;
+        ";
+        let mut stmp = self.connection.prepare(SQL)?;
+        stmp.execute(named_params! {
+            ":vacation_id": vacation_id,
+        })?;
+
+        Ok(())
+    }
+
+    pub fn get_vacations(&self) -> Result<Vec<(DateTime, DateTime)>> {
+        const SQL: &'static str = "
+            SELECT start_timestemp, end_timestemp FROM Vacations;
+        ";
+
+        let mut stmp = self.connection.prepare(SQL)?;
+        let result: rusqlite::Result<Vec<(DateTime, DateTime)>> = stmp
+            .query_map((), |r| {
+                let start: i64 = r.get(0)?;
+                let end: i64 = r.get(1)?;
+                Ok((from_timestamp(start), from_timestamp(end)))
+            })?
+            .collect();
+
+        result.map_err(|e| e.into())
+    }
+
+    pub fn list_vacations(
+        &self,
+        start: DateTime,
+        end: DateTime,
+    ) -> Result<Vec<(i64, DateTime, DateTime)>> {
+        const SQL: &'static str = "
+            SELECT vacation_id, start_timestemp, end_timestemp FROM Vacations WHERE start_timestemp >= :start AND end_timestemp <= :end;
+        ";
+
+        let mut stmp = self.connection.prepare(SQL)?;
+        let result: rusqlite::Result<Vec<(i64, DateTime, DateTime)>> = stmp
+            .query_map(
+                named_params! {
+                    ":start": to_timestamp(&start),
+                    ":end": to_timestamp(&end),
+                },
+                |r| {
+                    Ok((
+                        r.get(0)?,
+                        from_timestamp(r.get(1)?),
+                        from_timestamp(r.get(2)?),
+                    ))
+                },
+            )?
+            .collect();
+
+        result.map_err(|e| e.into())
     }
 
     pub fn list_tasks(&self, top_n: Option<usize>) -> Result<Vec<Task>> {

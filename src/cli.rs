@@ -33,7 +33,7 @@ impl clap::builder::TypedValueParser for CliDateValueParser {
         value: &std::ffi::OsStr,
     ) -> Result<Self::Value, clap::Error> {
         let str = value.to_string_lossy().into_owned();
-        let result = NaiveDate::parse_from_str(&str, "%d-%m-%Y");
+        let result = NaiveDate::parse_from_str(&str, "%d.%m.%Y");
         match result {
             Ok(date) => Ok(CliDate(Date::from_utc(date, Utc))),
             Err(err) => Err(clap::Error::raw(clap::ErrorKind::Format, err)),
@@ -65,6 +65,34 @@ pub enum Command {
     Show(ShowArgs),
     #[doc = "Manulay add task time range"]
     AddRange(AddRangeArgs),
+    #[doc = "Add vacation"]
+    VacationAdd(VacationAddArgs),
+    #[doc = "Remove vacation"]
+    VacationRemove(VacationRemoveArgs),
+    #[doc = "List vacations"]
+    VacationList(VacationListArgs),
+}
+
+#[derive(clap::Parser)]
+pub struct VacationListArgs {
+    #[clap(short, long, value_parser)]
+    pub since: Option<CliDate>,
+    #[clap(short, long, value_parser)]
+    pub till: Option<CliDate>,
+}
+
+#[derive(clap::Parser)]
+pub struct VacationAddArgs {
+    #[clap(short, long, value_parser)]
+    pub since: CliDate,
+    #[clap(short, long, value_parser)]
+    pub till: CliDate,
+}
+
+#[derive(clap::Parser)]
+pub struct VacationRemoveArgs {
+    #[clap(short, long)]
+    pub id: i64,
 }
 
 #[derive(clap::Parser)]

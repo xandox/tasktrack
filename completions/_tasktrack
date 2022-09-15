@@ -107,6 +107,34 @@ _arguments "${_arguments_options[@]}" \
 ':task-id -- Task id:' \
 && ret=0
 ;;
+(vacation-add)
+_arguments "${_arguments_options[@]}" \
+'*-s+[]:SINCE: ' \
+'*--since=[]:SINCE: ' \
+'*-t+[]:TILL: ' \
+'*--till=[]:TILL: ' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+&& ret=0
+;;
+(vacation-remove)
+_arguments "${_arguments_options[@]}" \
+'-i+[]:ID: ' \
+'--id=[]:ID: ' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+&& ret=0
+;;
+(vacation-list)
+_arguments "${_arguments_options[@]}" \
+'*-s+[]:SINCE: ' \
+'*--since=[]:SINCE: ' \
+'*-t+[]:TILL: ' \
+'*--till=[]:TILL: ' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+&& ret=0
+;;
 (help)
 _arguments "${_arguments_options[@]}" \
 '*::subcommand -- The subcommand whose help message to display:' \
@@ -128,6 +156,9 @@ _tasktrack_commands() {
 'report:Generate report' \
 'show:Show task description' \
 'add-range:Manulay add task time range' \
+'vacation-add:Add vacation' \
+'vacation-remove:Remove vacation' \
+'vacation-list:List vacations' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'tasktrack commands' commands "$@"
@@ -176,6 +207,21 @@ _tasktrack__report_commands() {
 _tasktrack__show_commands() {
     local commands; commands=()
     _describe -t commands 'tasktrack show commands' commands "$@"
+}
+(( $+functions[_tasktrack__vacation-add_commands] )) ||
+_tasktrack__vacation-add_commands() {
+    local commands; commands=()
+    _describe -t commands 'tasktrack vacation-add commands' commands "$@"
+}
+(( $+functions[_tasktrack__vacation-list_commands] )) ||
+_tasktrack__vacation-list_commands() {
+    local commands; commands=()
+    _describe -t commands 'tasktrack vacation-list commands' commands "$@"
+}
+(( $+functions[_tasktrack__vacation-remove_commands] )) ||
+_tasktrack__vacation-remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'tasktrack vacation-remove commands' commands "$@"
 }
 
 _tasktrack "$@"

@@ -31,6 +31,9 @@ Register-ArgumentCompleter -Native -CommandName 'tasktrack' -ScriptBlock {
             [CompletionResult]::new('report', 'report', [CompletionResultType]::ParameterValue, 'Generate report')
             [CompletionResult]::new('show', 'show', [CompletionResultType]::ParameterValue, 'Show task description')
             [CompletionResult]::new('add-range', 'add-range', [CompletionResultType]::ParameterValue, 'Manulay add task time range')
+            [CompletionResult]::new('vacation-add', 'vacation-add', [CompletionResultType]::ParameterValue, 'Add vacation')
+            [CompletionResult]::new('vacation-remove', 'vacation-remove', [CompletionResultType]::ParameterValue, 'Remove vacation')
+            [CompletionResult]::new('vacation-list', 'vacation-list', [CompletionResultType]::ParameterValue, 'List vacations')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
         }
@@ -96,6 +99,31 @@ Register-ArgumentCompleter -Native -CommandName 'tasktrack' -ScriptBlock {
             [CompletionResult]::new('--since', 'since', [CompletionResultType]::ParameterName, 'Date since generate report. Format %d-%m-%Y')
             [CompletionResult]::new('-t', 't', [CompletionResultType]::ParameterName, 'Date till generate report. Format %d-%m-%Y')
             [CompletionResult]::new('--till', 'till', [CompletionResultType]::ParameterName, 'Date till generate report. Format %d-%m-%Y')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help information')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help information')
+            break
+        }
+        'tasktrack;vacation-add' {
+            [CompletionResult]::new('-s', 's', [CompletionResultType]::ParameterName, 's')
+            [CompletionResult]::new('--since', 'since', [CompletionResultType]::ParameterName, 'since')
+            [CompletionResult]::new('-t', 't', [CompletionResultType]::ParameterName, 't')
+            [CompletionResult]::new('--till', 'till', [CompletionResultType]::ParameterName, 'till')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help information')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help information')
+            break
+        }
+        'tasktrack;vacation-remove' {
+            [CompletionResult]::new('-i', 'i', [CompletionResultType]::ParameterName, 'i')
+            [CompletionResult]::new('--id', 'id', [CompletionResultType]::ParameterName, 'id')
+            [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help information')
+            [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help information')
+            break
+        }
+        'tasktrack;vacation-list' {
+            [CompletionResult]::new('-s', 's', [CompletionResultType]::ParameterName, 's')
+            [CompletionResult]::new('--since', 'since', [CompletionResultType]::ParameterName, 'since')
+            [CompletionResult]::new('-t', 't', [CompletionResultType]::ParameterName, 't')
+            [CompletionResult]::new('--till', 'till', [CompletionResultType]::ParameterName, 'till')
             [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help information')
             [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help information')
             break
