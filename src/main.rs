@@ -174,9 +174,9 @@ fn report(db: &Database, args: ReportArgs) -> CmdResult {
         "Title",
         "URL",
         "Total hours",
+        "Month range",
         "Workpackage",
         "Objective",
-        "Month range",
     ]
     .iter()
     .map(|s| s.to_string())
@@ -205,8 +205,6 @@ fn report(db: &Database, args: ReportArgs) -> CmdResult {
         )));
         row.push(cell!(task.url.unwrap_or_else(|| none.clone())));
         row.push(cell!(format!("{:.2}", tr.total_hours)));
-        row.push(cell!(task.workpackage.unwrap_or_else(|| none.clone())));
-        row.push(cell!(task.objective.unwrap_or_else(|| none.clone())));
         let month_range = if tr.month_range.0 == tr.month_range.1 {
             tr.month_range.0.name()[..3].to_string()
         } else {
@@ -217,6 +215,8 @@ fn report(db: &Database, args: ReportArgs) -> CmdResult {
             )
         };
         row.push(cell!(month_range));
+        row.push(cell!(task.workpackage.unwrap_or_else(|| none.clone())));
+        row.push(cell!(task.objective.unwrap_or_else(|| none.clone())));
         for m in month.iter() {
             if tr.month_hours.contains_key(m) {
                 row.push(cell!(format!("{:.2}", tr.month_hours[m])));
@@ -226,7 +226,13 @@ fn report(db: &Database, args: ReportArgs) -> CmdResult {
         }
         table.add_row(Row::new(row));
     }
-    table.printstd();
+    if args.csv {
+        table
+            .to_csv(std::io::stdout())
+            .expect("Can't serialize to csv");
+    } else {
+        table.printstd();
+    }
 
     Ok(0)
 }

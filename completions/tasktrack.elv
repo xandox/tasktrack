@@ -76,6 +76,8 @@ set edit:completion:arg-completer[tasktrack] = {|@words|
             cand --help 'Print help information'
         }
         &'tasktrack;report'= {
+            cand -c 'If set print report in csv format'
+            cand --csv 'If set print report in csv format'
             cand -h 'Print help information'
             cand --help 'Print help information'
         }

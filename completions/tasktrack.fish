@@ -29,6 +29,7 @@ complete -c tasktrack -n "__fish_seen_subcommand_from edit" -l drop-title -d 'Dr
 complete -c tasktrack -n "__fish_seen_subcommand_from edit" -l drop-workpackage -d 'Drop workpackage value'
 complete -c tasktrack -n "__fish_seen_subcommand_from edit" -l drop-objective -d 'Drop objective value'
 complete -c tasktrack -n "__fish_seen_subcommand_from edit" -s h -l help -d 'Print help information'
+complete -c tasktrack -n "__fish_seen_subcommand_from report" -s c -l csv -d 'If set print report in csv format'
 complete -c tasktrack -n "__fish_seen_subcommand_from report" -s h -l help -d 'Print help information'
 complete -c tasktrack -n "__fish_seen_subcommand_from show" -s h -l help -d 'Print help information'
 complete -c tasktrack -n "__fish_seen_subcommand_from add-range" -s s -l since -d 'Date since generate report. Format %d-%m-%Y' -r

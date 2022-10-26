@@ -85,6 +85,8 @@ Register-ArgumentCompleter -Native -CommandName 'tasktrack' -ScriptBlock {
             break
         }
         'tasktrack;report' {
+            [CompletionResult]::new('-c', 'c', [CompletionResultType]::ParameterName, 'If set print report in csv format')
+            [CompletionResult]::new('--csv', 'csv', [CompletionResultType]::ParameterName, 'If set print report in csv format')
             [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help information')
             [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help information')
             break

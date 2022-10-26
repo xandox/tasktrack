@@ -83,6 +83,8 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (report)
 _arguments "${_arguments_options[@]}" \
+'*-c[If set print report in csv format]' \
+'*--csv[If set print report in csv format]' \
 '-h[Print help information]' \
 '--help[Print help information]' \
 ':since -- Date since generate report. Format %d-%m-%Y:' \

@@ -137,6 +137,10 @@ pub struct ReportArgs {
     #[clap(value_parser, value_name = "TILL_DATE")]
     #[doc = "Date till generate report. Format %d-%m-%Y"]
     pub till: CliDate,
+
+    #[clap(short, long, value_parser)]
+    #[doc = "If set print report in csv format"]
+    pub csv: bool,
 }
 
 #[derive(clap::Parser)]
